@@ -14,6 +14,7 @@ from __future__ import print_function
 import json
 
 import twitter
+from twitter import TwitterError
 
 from config.config import get_config
 
@@ -26,38 +27,78 @@ class Fetcher(object):
         access_token = conf["access_tokens"]["access_token"]
         access_token_secret = conf["access_tokens"]["access_token_secret"]
 
-        api = twitter.Api(
-            consumer_key, consumer_secret_key, access_token, access_token_secret
-        )
+        api = twitter.Api(consumer_key,
+                          consumer_secret_key,
+                          access_token,
+                          access_token_secret)
         self.api = api
 
-    def get_tweets(self, screen_name=None):
-        timeline = self.api.GetUserTimeline(screen_name=screen_name, count=200)
-        earliest_tweet = min(timeline, key=lambda x: x.id).id
-        print("getting tweets before:", earliest_tweet)
+    def get_user_timeline_tweets(self, screen_name=None, since_id=None):
+        tweets = list()
+        try:
+            tweets = self.api.GetUserTimeline(screen_name=screen_name,
+                                              count=200,
+                                              since_id=since_id)
+            earliest_tweet = min(tweets, key=lambda x: x.id).id
+            print("getting tweets before:", earliest_tweet)
 
-        while True:
-            tweets = self.api.GetUserTimeline(
-                screen_name=screen_name, max_id=earliest_tweet, count=200
-            )
-            new_earliest = min(tweets, key=lambda x: x.id).id
+            while True:
+                new_tweets = self.api.GetUserTimeline(screen_name=screen_name,
+                                                      max_id=earliest_tweet,
+                                                      count=200,
+                                                      since_id=since_id)
+                new_earliest = min(new_tweets, key=lambda x: x.id).id
 
-            if not tweets or new_earliest == earliest_tweet:
-                break
-            else:
-                earliest_tweet = new_earliest
-                print("getting tweets before:", earliest_tweet)
-                timeline += tweets
+                if not new_tweets or new_earliest == earliest_tweet:
+                    break
+                else:
+                    earliest_tweet = new_earliest
+                    print("getting tweets before:", earliest_tweet)
+                    tweets += new_tweets
+        except TwitterError as e:
+            print(e.message)
+            pass
+        return tweets
 
-        return timeline
+    def get_tweets_by_term(self, term=None, since_id=None, since=None):
+        tweets = list()
+        try:
+            tweets = self.api.GetSearch(term=term,
+                                        count=200,
+                                        since_id=since_id,
+                                        since=since)
+            earliest_tweet = min(tweets, key=lambda x: x.id).id
+            print("getting tweets before:", earliest_tweet)
+
+            while True:
+                new_tweets = self.api.GetSearch(term=term,
+                                                max_id=earliest_tweet,
+                                                count=200,
+                                                since_id=since_id,
+                                                since=since)
+                new_earliest = min(new_tweets, key=lambda x: x.id).id
+
+                if not new_tweets or new_earliest == earliest_tweet:
+                    break
+                else:
+                    earliest_tweet = new_earliest
+                    print("getting tweets before:", earliest_tweet)
+                    tweets += new_tweets
+        except TwitterError as e:
+            print(e.message)
+            pass
+        return tweets
 
 
 if __name__ == "__main__":
-    screen_name = "realDonaldTrump"
-    print(screen_name)
-    timeline = Fetcher().get_tweets(screen_name=screen_name)
+    term = "eu"
+    print(term)
+    # results = Fetcher().get_user_timeline_tweets(screen_name=screen_name)
+    results = Fetcher().get_tweets_by_term(term=term)
 
     with open('examples/timeline.json', 'w+') as f:
-        for tweet in timeline:
+        f.write("[")
+        for tweet in results:
             f.write(json.dumps(tweet._json))
-            f.write('\n')
+            f.write(',\n')
+        f.write("]")
