@@ -7,6 +7,7 @@ from decimal import Decimal
 
 from config.config import get_config
 from fetcher.fetcher import Fetcher
+from uils import remove_nones
 
 
 def lambda_handler(event, context):
@@ -69,5 +70,6 @@ def lambda_handler(event, context):
             print("Adding tweet ({}) to batch".format(tweet._json["id"]))
             data = tweet._json
             data = json.loads(json.dumps(data), parse_float=Decimal)
+            data = remove_nones(data)
             batch.put_item(Item=data)
     print("Finished writing to DynamoDb")
