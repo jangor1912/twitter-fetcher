@@ -34,7 +34,7 @@ def lambda_handler(event, context):
                                  KeyConditionExpression=Key('user_screen_name').eq(screen_name),
                                  ScanIndexForward=False,
                                  Limit=1)
-            latest_user_tweet_id = result["Items"][0]["id_str"]
+            latest_user_tweet_id = int(result["Items"][0]["id_str"])
         except Exception as e:
             print(e)
 
@@ -61,7 +61,7 @@ def lambda_handler(event, context):
                                  KeyConditionExpression=Key('hashtag').eq(tag),
                                  ScanIndexForward=False,
                                  Limit=1)
-            latest_tag_tweet_id = result["Items"][0]["id_str"]
+            latest_tag_tweet_id = int(result["Items"][0]["id_str"])
         except Exception as e:
             print(e)
         if results:

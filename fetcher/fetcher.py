@@ -39,6 +39,9 @@ class Fetcher(object):
             tweets = self.api.GetUserTimeline(screen_name=screen_name,
                                               count=200,
                                               since_id=since_id)
+            if len(tweets) == 0:
+                print("Timeline of user={} is up to date".format(screen_name))
+                return []
             earliest_tweet = min(tweets, key=lambda x: x.id).id
             print("getting tweets before:", earliest_tweet)
 
