@@ -3,9 +3,63 @@ users:
   - CopernicusEU
   - EUErasmusPlus
   - WeNeedEU
+  - eucopresident
+  - JunckerEU
+  - EP_President
+  - ManfredWeber
+  - gualtierieurope
+  - UdoBullmann
+  - othmar_karas
+  - danutahuebner
+  - guyverhofstadt
+  - HeidiHautala
+  - Claude_Moraes
+  - Telicka
+  - Nigel_Farage
 tags:
+  - ep19
   - EU
   - EUelections2019
   - EUParlament
   - Elections2019
   - EuropeanElection2019
+  - thistimeimvoting
+  - wybory2019
+  - eurowybory2019
+  - tymrazemglosuje
+  # Hungarian
+  - izboriEU2019
+  # Dutch
+  - verkiezingen
+  - verkiezingen2019
+  - europeseverkiezingen
+  # German
+  - wahlen
+  - europawahl2019
+  - europawahl
+  # Czech / Slovak
+  - európskevoľby
+  - evropskévolby2019
+  # Danish
+  - ep2019dk
+  # Spanish
+  - EleccionesUE2019
+  - EleccionsUE2019
+  # French
+  - europeennes
+  - européennes2019
+  # Finnish
+  - eurovaalit
+  - EUvaalit2019
+  # Italian
+  - ElezioniEuropee2019
+  - elezionieuropee
+  - elezioni2019
+  # Latvian
+  - vēlēšanas
+  # Maltese
+  - ElezzjonijietUE2019
+  # Portugese
+  - eleiçoes
+  # Slovenian
+  - volitve2019

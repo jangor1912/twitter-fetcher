@@ -22,10 +22,10 @@ from config.config import get_config
 class Fetcher(object):
     def __init__(self):
         conf = get_config()
-        consumer_key = conf["keys"]["api"]
-        consumer_secret_key = conf["keys"]["api_secret"]
-        access_token = conf["access_tokens"]["access_token"]
-        access_token_secret = conf["access_tokens"]["access_token_secret"]
+        consumer_key = conf["twitter"]["keys"]["api"]
+        consumer_secret_key = conf["twitter"]["keys"]["api_secret"]
+        access_token = conf["twitter"]["access_tokens"]["access_token"]
+        access_token_secret = conf["twitter"]["access_tokens"]["access_token_secret"]
 
         api = twitter.Api(consumer_key,
                           consumer_secret_key,
@@ -92,16 +92,30 @@ class Fetcher(object):
             pass
         return tweets
 
+    def get_users_that_like_tweet(self, tweet):
+        raise NotImplementedError("Getting users that liked specific tweet is not implemented yet")
+
+    def get_users_that_retweet_tweet(self, tweet):
+        tweet_id = tweet["id"]
+        retweets = self.api.GetRetweets(tweet_id)
+        retweets = [retweet._json["user"]["screen_name"] + "_" + retweet._json["user"]["id_str"]
+                    for retweet in retweets]
+        return retweets
+
 
 if __name__ == "__main__":
-    term = "eu"
-    print(term)
-    # results = Fetcher().get_user_timeline_tweets(screen_name=screen_name)
-    results = Fetcher().get_tweets_by_term(term=term)
-
-    with open('examples/timeline.json', 'w+') as f:
-        f.write("[")
-        for tweet in results:
-            f.write(json.dumps(tweet._json))
-            f.write(',\n')
-        f.write("]")
+    # term = "eu"
+    # print(term)
+    # # results = Fetcher().get_user_timeline_tweets(screen_name=screen_name)
+    # results = Fetcher().get_tweets_by_term(term=term)
+    #
+    # with open('examples/timeline.json', 'w+') as f:
+    #     f.write("[")
+    #     for tweet in results:
+    #         f.write(json.dumps(tweet._json))
+    #         f.write(',\n')
+    #     f.write("]")
+    user_names = Fetcher().get_users_that_retweet_tweet({"id": 1000034550872002565})
+    print("User name no: {}".format(len(user_names)))
+    for user_name in user_names:
+        print(user_name)
