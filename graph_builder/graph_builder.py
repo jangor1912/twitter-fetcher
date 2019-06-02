@@ -1,5 +1,6 @@
 import boto3
 import networkx as nx
+from boto3.dynamodb.conditions import Key, Attr
 
 from config.config import get_config
 from fetcher.fetcher import Fetcher
@@ -18,7 +19,7 @@ class GraphBuilder(object):
         # Call the assume_role method of the STSConnection object and pass the role
         # ARN and a role session name.
         assumed_role_object = sts_client.assume_role(
-            RoleArn="arn:aws:iam::835348665944:role/non_root_dynamo_db",
+            RoleArn="arn:aws:iam::835348665944:role/dynamo_db_full_access",
             RoleSessionName="AssumeRoleSession1")
 
         # From the response that contains the assumed role, get the temporary
@@ -32,6 +33,7 @@ class GraphBuilder(object):
             aws_access_key_id=credentials['AccessKeyId'],
             aws_secret_access_key=credentials['SecretAccessKey'],
             aws_session_token=credentials['SessionToken'],
+            region_name='eu-west-1'
         )
 
         # self.dynamodb = boto3.resource('dynamodb',
@@ -40,18 +42,19 @@ class GraphBuilder(object):
         #                                aws_secret_access_key=aws_secret_access_key,
         #                                region_name=region)
 
-        self.tweet_table = self.dynamodb.Table('tweetSecond')
+        self.tweet_table = self.dynamodb.Table('TweetSecond')
 
         self.graph = nx.DiGraph()
         self.fetcher = Fetcher()
 
     def _yield_tweets(self, batches=None):
-        response = self.tweet_table.scan()
+        response = self.tweet_table.scan(FilterExpression=Attr('retweet_count').gt(2000))
         data = response['Items']
         first = True
         batch_no = 1
         while 'LastEvaluatedKey' in response:
-            response = self.tweet_table.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
+            response = self.tweet_table.scan(ExclusiveStartKey=response['LastEvaluatedKey'],
+                                             FilterExpression=Attr('retweet_count').gt(2000))
             batch_no += 1
 
             if batches and batch_no >= batches:
@@ -63,6 +66,33 @@ class GraphBuilder(object):
                 yield data
             else:
                 yield response["Items"]
+
+    def _get_popular_tweets(self):
+        main_dict_length = 500
+        tmp_dict_length = 1000
+        tweets_by_retweet_no = dict()
+        temporary_dict = dict()
+        for batch in self._yield_tweets(batches=3):
+            for tweet in batch:
+                if self.check_if_tweet_has_correct_date(tweet):
+                    yield tweet
+
+    def check_if_tweet_has_correct_date(self, tweet):
+        date_str = tweet["created_at"]
+        date_array = date_str.split(" ")
+        try:
+            day_of_the_week = date_array[0]
+            month = date_array[1]
+            day = date_array[2]
+            hour = date_array[3]
+            year = date_array[5]
+
+            if year == '2019' and month == 'May':
+                return True
+            return False
+        except IndexError:
+            return False
+
 
     def save_to_file(self, output_file_path):
         nx.write_gexf(self.graph, output_file_path)
@@ -85,12 +115,27 @@ class GraphBuilder(object):
                 self.graph.add_edge(tweet_owner, user_name, weight=1)
 
     def build(self, parameter="favourites"):
-        for tweet_batch in self._yield_tweets():
-            for tweet in tweet_batch:
+        # for tweet_batch in self._yield_tweets():
+        #     for tweet in tweet_batch:
+        #         self._tweet_to_edges(tweet, parameter)
+        twitter_calls = 0
+        for tweet in self._get_popular_tweets():
+            try:
                 self._tweet_to_edges(tweet, parameter)
+                twitter_calls += 1
+            except Exception as e:
+                try:
+                    print(str(e))
+                    code = e.args[0][0]["code"]
+                    if code == 88:
+                        print("Twitter was called {} times".format(twitter_calls))
+                        return
+                    pass
+                except IndexError:
+                    pass
 
 
 if __name__ == '__main__':
     builder = GraphBuilder()
-    # builder.build(parameter="retweets")
-    # builder.save_to_file("C:\\Users\\Scarf_000\\Desktop\\ZTIS\\favourites_graph.gexf")
+    builder.build(parameter="retweets")
+    builder.save_to_file("C:\\Users\\Scarf_000\\Desktop\\ZTIS\\favourites_graph.gexf")

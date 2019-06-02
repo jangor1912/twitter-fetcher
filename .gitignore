@@ -1,0 +1,7 @@
+
+*.pyc
+.idea/misc.xml
+.idea/twitter-fetcher.iml
+.idea/vcs.xml
+.idea/workspace.xml
+config/config.yml
