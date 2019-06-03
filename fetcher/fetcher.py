@@ -92,11 +92,10 @@ class Fetcher(object):
             pass
         return tweets
 
-    def get_users_that_like_tweet(self, tweet):
+    def get_users_that_like_tweet(self, tweet_id):
         raise NotImplementedError("Getting users that liked specific tweet is not implemented yet")
 
-    def get_users_that_retweet_tweet(self, tweet):
-        tweet_id = tweet["id"]
+    def get_users_that_retweet_tweet(self, tweet_id):
         retweets = self.api.GetRetweets(tweet_id)
         retweets = [retweet._json["user"]["screen_name"] + "_" + retweet._json["user"]["id_str"]
                     for retweet in retweets]

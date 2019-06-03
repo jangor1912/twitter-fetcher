@@ -7,6 +7,7 @@ class TweetPerDate(object):
     def __init__(self):
         self.tweet_per_date = {}
         self.dynamo_db = DynamoDB()
+        self.tweets_on_histogram = 0
 
     def save_to_csv(self, path):
         with open(path, 'a') as fd:
@@ -45,6 +46,7 @@ class TweetPerDate(object):
                         day_of_the_week = day_of_the_week_list[(int(day)-1) % 7]
                     key = year + "-" + month + "-" + day + "-" + day_of_the_week + "-" + hour
                     fields = [key, tweet_no]
+                    self.tweets_on_histogram += tweet_no
                     writer.writerow(fields)
 
     def create_histogram_dict(self, batches=None):
@@ -86,5 +88,6 @@ class TweetPerDate(object):
 
 if __name__ == "__main__":
     tpd = TweetPerDate()
-    tpd.create_histogram_dict(batches=10)
-    tpd.save_to_csv_correct_order('C:\\Users\\Scarf_000\\PycharmProjects\\twitter-fetcher\\csv_files\\tweet_per_hour.csv')
+    tpd.create_histogram_dict(batches=1000)
+    tpd.save_to_csv_correct_order('C:\\Users\\Scarf_000\\PycharmProjects\\twitter-fetcher\\csv_files\\tweet_per_hour_full.csv')
+    print("Tweets on histogram={}".format(tpd.tweets_on_histogram))

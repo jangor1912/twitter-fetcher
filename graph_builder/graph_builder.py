@@ -43,18 +43,19 @@ class GraphBuilder(object):
         #                                region_name=region)
 
         self.tweet_table = self.dynamodb.Table('TweetSecond')
+        self.already_created_tweet_ids = list()
 
         self.graph = nx.DiGraph()
         self.fetcher = Fetcher()
 
     def _yield_tweets(self, batches=None):
-        response = self.tweet_table.scan(FilterExpression=Attr('retweet_count').gt(2000))
+        response = self.tweet_table.scan(FilterExpression=Attr('retweet_count').gt(10000))
         data = response['Items']
         first = True
         batch_no = 1
         while 'LastEvaluatedKey' in response:
             response = self.tweet_table.scan(ExclusiveStartKey=response['LastEvaluatedKey'],
-                                             FilterExpression=Attr('retweet_count').gt(2000))
+                                             FilterExpression=Attr('retweet_count').gt(10000))
             batch_no += 1
 
             if batches and batch_no >= batches:
@@ -72,7 +73,7 @@ class GraphBuilder(object):
         tmp_dict_length = 1000
         tweets_by_retweet_no = dict()
         temporary_dict = dict()
-        for batch in self._yield_tweets(batches=3):
+        for batch in self._yield_tweets(batches=100):
             for tweet in batch:
                 if self.check_if_tweet_has_correct_date(tweet):
                     yield tweet
@@ -89,30 +90,39 @@ class GraphBuilder(object):
 
             if year == '2019' and month == 'May':
                 return True
+            print("Returned false tweet from: {}".format(date_str))
             return False
         except IndexError:
+            print("IndexError!!")
             return False
-
 
     def save_to_file(self, output_file_path):
         nx.write_gexf(self.graph, output_file_path)
 
     def _tweet_to_edges(self, tweet, parameter='favourites'):
-        tweet_owner = tweet["user"]["screen_name"] + "_" + tweet["user"]["id_str"]
+        original_tweet_owner = tweet["retweeted_status"]["user"]["screen_name"] +\
+                               tweet["retweeted_status"]["user"]["id_str"]
+        original_tweet_id = tweet["retweeted_status"]["id_str"]
+        if original_tweet_id in self.already_created_tweet_ids:
+            print("Tweet with id = {}, of user = {} already appended".format(original_tweet_id, original_tweet_owner))
+            return
+
         if parameter == 'favourites':
-            user_list = self.fetcher.get_users_that_like_tweet(tweet)
+            user_list = self.fetcher.get_users_that_like_tweet(original_tweet_id)
         elif parameter == 'retweets':
-            user_list = self.fetcher.get_users_that_retweet_tweet(tweet)
+            user_list = self.fetcher.get_users_that_retweet_tweet(original_tweet_id)
         else:
             raise RuntimeError("Incorrect parameter. Parameter should be one of {}"
                                .format(str(["favourites", "retweets"])))
+
+        self.already_created_tweet_ids.append(original_tweet_id)
         for user_name in user_list:
-            if self.graph.has_edge(tweet_owner, user_name):
+            if self.graph.has_edge(original_tweet_owner, user_name):
                 # we added this one before, just increase the weight by one
-                self.graph[tweet_owner][user_name]['weight'] += 1
+                self.graph[original_tweet_owner][user_name]['weight'] += 1
             else:
                 # new edge. add with weight=1
-                self.graph.add_edge(tweet_owner, user_name, weight=1)
+                self.graph.add_edge(original_tweet_owner, user_name, weight=1)
 
     def build(self, parameter="favourites"):
         # for tweet_batch in self._yield_tweets():
@@ -131,7 +141,7 @@ class GraphBuilder(object):
                         print("Twitter was called {} times".format(twitter_calls))
                         return
                     pass
-                except IndexError:
+                except (IndexError, TypeError):
                     pass
 
 
